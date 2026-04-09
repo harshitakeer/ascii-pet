@@ -11,8 +11,6 @@ import signal
 import sys
 import time
 
-from rich.live import Live
-
 from .behavior import TICK_RATE, choose_behavior, update_position, update_stats
 from .ipc import IPCServer, SOCKET_PATH
 from .renderer import Renderer
@@ -43,30 +41,26 @@ class PetDaemon:
     async def run(self) -> None:
         asyncio.create_task(self._ipc.start())
 
-        terminal_size = shutil.get_terminal_size((80, 24))
-        renderable = self.renderer.get_renderable(self.state, terminal_size.columns)
+        while True:
+            now = time.monotonic()
+            dt = now - self._last_tick
+            self._last_tick = now
 
-        with Live(renderable, refresh_per_second=10, vertical_overflow="visible") as live:
-            while True:
-                now = time.monotonic()
-                dt = now - self._last_tick
-                self._last_tick = now
+            terminal_size = shutil.get_terminal_size((80, 24))
+            w = terminal_size.columns
 
-                terminal_size = shutil.get_terminal_size((80, 24))
-                w = terminal_size.columns
+            update_stats(self.state, dt)
+            self._maybe_change_behavior(dt)
+            update_position(self.state, w, dt)
 
-                update_stats(self.state, dt)
-                self._maybe_change_behavior(dt)
-                update_position(self.state, w, dt)
+            self.renderer.render(self.state, w)
 
-                live.update(self.renderer.get_renderable(self.state, w))
+            # Periodic save
+            if now - self._last_save > 30:
+                save(self.state)
+                self._last_save = now
 
-                # Periodic save
-                if now - self._last_save > 30:
-                    save(self.state)
-                    self._last_save = now
-
-                await asyncio.sleep(TICK_RATE)
+            await asyncio.sleep(TICK_RATE)
 
     def _maybe_change_behavior(self, dt: float) -> None:
         self._behavior_timer += dt

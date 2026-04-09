@@ -1,12 +1,15 @@
-from rich.console import Group
+import sys
+from io import StringIO
+
+from rich.console import Console
 from rich.text import Text
 
 from .state import PetState
 
 # ASCII art frames per pet type, per behavior.
-# Cat  — pointy ears: (=^.^=)
-# Dog  — floppy ears: [^.^]
-# Bunny — tall ears:  ('^.^')
+# Cat   — pointy ears:  (=^.^=)
+# Dog   — side ears:    {^.^}
+# Bunny — tall ears:    ('^.^')
 ALL_FRAMES: dict[str, dict[str, list[str]]] = {
     "cat": {
         "idle":          ["(=^.^=)", "(=^-^=)"],
@@ -18,22 +21,22 @@ ALL_FRAMES: dict[str, dict[str, list[str]]] = {
         "playful":       ["(=^w^=)/", "(=^v^=)~", "(=^w^=)*"],
     },
     "dog": {
-        "idle":          ["[^.^]", "[^-^]"],
-        "walking_right": ["[^.^]~", "[^o^]>"],
-        "walking_left":  ["~[^.^]", "<[^o^]"],
-        "sleeping":      ["[- .- ]  z", "[- .- ]   z", "[- .- ]    Z", "[- .- ]   z"],
-        "sad":           ["[;.;]", "[T.T]"],
-        "hungry":        ["[o.o]", "[O.O]"],
-        "playful":       ["[^w^]/", "[^v^]~", "[^w^]*"],
+        "idle":          ["{^.^}", "{^-^}"],
+        "walking_right": ["{^.^}~", "{^o^}>"],
+        "walking_left":  ["~{^.^}", "<{^o^}"],
+        "sleeping":      ["{- .- }  z", "{- .- }   z", "{- .- }    Z", "{- .- }   z"],
+        "sad":           ["{;.;}", "{T.T}"],
+        "hungry":        ["{o.o}", "{O.O}"],
+        "playful":       ["{^w^}/", "{^v^}~", "{^w^}*"],
     },
     "bunny": {
-        "idle":          ["('^.^')", "('^-^')"],
-        "walking_right": ["('^.^')~", "('^o^')>"],
-        "walking_left":  ["~('^.^')", "<('^o^')"],
-        "sleeping":      ["('-.- ')  z", "('-.- ')   z", "('-.- ')    Z", "('-.- ')   z"],
-        "sad":           ["(';.;')", "('T.T')"],
-        "hungry":        ["('^o^')", "('°o°')"],
-        "playful":       ["('^w^')/", "('^v^')~", "('^w^')*"],
+        "idle":          ["(\\.^.^./)", "(\\.^-^./)"],
+        "walking_right": ["(\\.^.^./)~", "(\\.^o^./)>"],
+        "walking_left":  ["~(\\.^.^./)", "<(\\.^o^./)"],
+        "sleeping":      ["(\\.- .- ./)  z", "(\\.- .- ./)   z", "(\\.- .- ./)    Z", "(\\.- .- ./)   z"],
+        "sad":           ["(\\. ;.; ./)", "(\\. T.T ./)"],
+        "hungry":        ["(\\.o.o./)", "(\\.O.O./)"],
+        "playful":       ["(\\.^w^./)/", "(\\.^v^./)~", "(\\.^w^./)*"],
     },
 }
 
@@ -53,17 +56,19 @@ MOOD_LABEL: dict[str, str] = {
     "idle": "relaxing",
     "walking_right": "exploring",
     "walking_left": "exploring",
-    "sleeping": "sleeping  zzZ",
+    "sleeping": "sleeping zzZ",
     "sad": "feeling sad",
     "hungry": "SO HUNGRY",
     "playful": "being playful!",
 }
 
+# Number of lines we write each frame — must stay constant to erase correctly.
+RENDER_LINES = 5
 
-def _stat_bar(value: float, width: int = 12) -> tuple[str, str]:
-    """Return (bar_string, style) for a 0-100 value."""
+
+def _bar(value: float, width: int = 10) -> tuple[str, str]:
     filled = round(value / 100 * width)
-    bar = "█" * filled + "░" * (width - filled)
+    bar = "\u2588" * filled + "\u2591" * (width - filled)
     if value > 60:
         style = "green"
     elif value > 30:
@@ -77,11 +82,11 @@ class Renderer:
     def __init__(self) -> None:
         self._frame_idx = 0
         self._tick = 0
-        self._ticks_per_frame = 3  # change frame every N ticks
+        self._started = False
 
-    def get_renderable(self, state: PetState, terminal_width: int) -> Group:
+    def render(self, state: PetState, terminal_width: int) -> None:
         self._tick += 1
-        if self._tick % self._ticks_per_frame == 0:
+        if self._tick % 3 == 0:
             self._frame_idx += 1
 
         pet_frames = ALL_FRAMES.get(state.pet_type, ALL_FRAMES["cat"])
@@ -90,24 +95,45 @@ class Renderer:
         pet_style = BEHAVIOR_STYLE.get(state.behavior, "white")
         mood = MOOD_LABEL.get(state.behavior, state.behavior)
 
-        # ── Status bar ──────────────────────────────────────────────
-        status = Text()
-        status.append(f" {state.name}", style="bold cyan")
-        status.append(f"  [{mood}]", style="dim italic")
-
+        # ── Status bar (kept short to avoid wrapping) ────────────────
         fullness = 100.0 - state.hunger
-        for label, val in (("food", fullness), ("happy", state.happiness), ("energy", state.energy)):
-            bar, bar_style = _stat_bar(val)
-            status.append(f"  {label} ", style="dim")
-            status.append(bar, style=bar_style)
+        food_bar, food_style   = _bar(fullness)
+        happy_bar, happy_style = _bar(state.happiness)
+        nrg_bar, nrg_style     = _bar(state.energy)
 
-        # ── Pet line ─────────────────────────────────────────────────
+        status = Text(overflow="crop", no_wrap=True)
+        status.append(f" {state.name}", style="bold cyan")
+        status.append(f" {mood}", style="dim italic")
+        status.append("  food ", style="dim")
+        status.append(food_bar, style=food_style)
+        status.append("  happy ", style="dim")
+        status.append(happy_bar, style=happy_style)
+        status.append("  energy ", style="dim")
+        status.append(nrg_bar, style=nrg_style)
+
+        # ── Pet ───────────────────────────────────────────────────────
         x = max(0, int(state.position))
-        pet_text = Text()
+        pet_text = Text(overflow="crop", no_wrap=True)
         pet_text.append(" " * x)
         pet_text.append(frame, style=f"bold {pet_style}")
 
         # ── Ground ───────────────────────────────────────────────────
-        ground = Text("─" * terminal_width, style="dim")
+        ground = Text("\u2500" * terminal_width, style="dim", overflow="crop", no_wrap=True)
 
-        return Group(status, Text(""), pet_text, ground, Text(""))
+        lines = [status, Text(""), pet_text, ground, Text("")]
+
+        # Render to buffer so we can write atomically with cursor control
+        buf = StringIO()
+        c = Console(file=buf, width=terminal_width, highlight=False,
+                    force_terminal=True, no_color=False)
+        for line in lines:
+            c.print(line, end="\n", no_wrap=True, overflow="crop")
+
+        output = buf.getvalue()
+
+        # Move cursor up to overwrite previous frame, then write
+        if self._started:
+            sys.stdout.write(f"\033[{RENDER_LINES}A\033[1G")
+        sys.stdout.write(output)
+        sys.stdout.flush()
+        self._started = True
