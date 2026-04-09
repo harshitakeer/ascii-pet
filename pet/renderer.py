@@ -7,36 +7,39 @@ from rich.text import Text
 from .state import PetState
 
 # ASCII art frames per pet type, per behavior.
+# Only uses:  ( ) = ^ - . ~ > < / * ; T o O w v b d * @ !
+# No [ ] { } \ or other chars that trip up rich or Python fmt.
+#
 # Cat   — pointy ears:  (=^.^=)
-# Dog   — side ears:    {^.^}
-# Bunny — tall ears:    ('^.^')
+# Dog   — paws:         d(^.^)b
+# Bunny — fluffy cheeks: (*^.^*)
 ALL_FRAMES: dict[str, dict[str, list[str]]] = {
     "cat": {
         "idle":          ["(=^.^=)", "(=^-^=)"],
         "walking_right": ["(=^.^=)~", "(=^o^=)>"],
         "walking_left":  ["~(=^.^=)", "<(=^o^=)"],
-        "sleeping":      ["(= -.- =)  z", "(= -.- =)   z", "(= -.- =)    Z", "(= -.- =)   z"],
+        "sleeping":      ["(= -.- =) z", "(= -.- =)  z", "(= -.- =)   Z", "(= -.- =)  z"],
         "sad":           ["(=;.;=)", "(=T.T=)"],
         "hungry":        ["(=o.o=)", "(=O.O=)"],
         "playful":       ["(=^w^=)/", "(=^v^=)~", "(=^w^=)*"],
     },
     "dog": {
-        "idle":          ["{^.^}", "{^-^}"],
-        "walking_right": ["{^.^}~", "{^o^}>"],
-        "walking_left":  ["~{^.^}", "<{^o^}"],
-        "sleeping":      ["{- .- }  z", "{- .- }   z", "{- .- }    Z", "{- .- }   z"],
-        "sad":           ["{;.;}", "{T.T}"],
-        "hungry":        ["{o.o}", "{O.O}"],
-        "playful":       ["{^w^}/", "{^v^}~", "{^w^}*"],
+        "idle":          ["d(^.^)b", "d(^-^)b"],
+        "walking_right": ["d(^.^)b~", "d(^o^)b>"],
+        "walking_left":  ["~d(^.^)b", "<d(^o^)b"],
+        "sleeping":      ["d(-.-  )b z", "d(-.-  )b  z", "d(-.-  )b   Z", "d(-.-  )b  z"],
+        "sad":           ["d(;.;)b", "d(T.T)b"],
+        "hungry":        ["d(o.o)b", "d(O.O)b"],
+        "playful":       ["d(^w^)b/", "d(^v^)b~", "d(^w^)b*"],
     },
     "bunny": {
-        "idle":          ["(\\.^.^./)", "(\\.^-^./)"],
-        "walking_right": ["(\\.^.^./)~", "(\\.^o^./)>"],
-        "walking_left":  ["~(\\.^.^./)", "<(\\.^o^./)"],
-        "sleeping":      ["(\\.- .- ./)  z", "(\\.- .- ./)   z", "(\\.- .- ./)    Z", "(\\.- .- ./)   z"],
-        "sad":           ["(\\. ;.; ./)", "(\\. T.T ./)"],
-        "hungry":        ["(\\.o.o./)", "(\\.O.O./)"],
-        "playful":       ["(\\.^w^./)/", "(\\.^v^./)~", "(\\.^w^./)*"],
+        "idle":          ["(*^.^*)", "(*^-^*)"],
+        "walking_right": ["(*^.^*)~", "(*^o^*)>"],
+        "walking_left":  ["~(*^.^*)", "<(*^o^*)"],
+        "sleeping":      ["(*-.-*) z", "(*-.-*)  z", "(*-.-*)   Z", "(*-.-*)  z"],
+        "sad":           ["(*;.;*)", "(*T.T*)"],
+        "hungry":        ["(*o.o*)", "(*O.O*)"],
+        "playful":       ["(*^w^*)/", "(*^v^*)~", "(*^w^*)*"],
     },
 }
 

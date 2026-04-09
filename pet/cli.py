@@ -90,7 +90,7 @@ def cmd_status() -> None:
 def cmd_types() -> None:
     from .renderer import PET_TYPES, ALL_FRAMES
     print("\n  Available pet types:\n")
-    previews = {"cat": "(=^.^=)", "dog": "{^.^}", "bunny": "(\\.^.^./)"}
+    previews = {"cat": "(=^.^=)", "dog": "d(^.^)b", "bunny": "(*^.^*)"}
     for t in PET_TYPES:
         print(f"    {t:<8}  {previews.get(t, '')}")
     print(f"\n  Usage: pet start --type <type>\n")
