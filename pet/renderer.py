@@ -3,40 +3,41 @@ from rich.text import Text
 
 from .state import PetState
 
-# ASCII art frames per behavior
-FRAMES: dict[str, list[str]] = {
-    "idle": [
-        "(=^.^=)",
-        "(=^-^=)",
-    ],
-    "walking_right": [
-        "(=^.^=)~",
-        "(=^o^=)>",
-    ],
-    "walking_left": [
-        "~(=^.^=)",
-        "<(=^o^=)",
-    ],
-    "sleeping": [
-        "(= -.- =)  z",
-        "(= -.- =)   z",
-        "(= -.- =)    Z",
-        "(= -.- =)   z",
-    ],
-    "sad": [
-        "(=;.;=)",
-        "(=T.T=)",
-    ],
-    "hungry": [
-        "(=°.°=)",
-        "(=°o°=)",
-    ],
-    "playful": [
-        "(=^w^=)/",
-        "(=^v^=)~",
-        "(=^w^=)*",
-    ],
+# ASCII art frames per pet type, per behavior.
+# Cat  — pointy ears: (=^.^=)
+# Dog  — floppy ears: [^.^]
+# Bunny — tall ears:  ('^.^')
+ALL_FRAMES: dict[str, dict[str, list[str]]] = {
+    "cat": {
+        "idle":          ["(=^.^=)", "(=^-^=)"],
+        "walking_right": ["(=^.^=)~", "(=^o^=)>"],
+        "walking_left":  ["~(=^.^=)", "<(=^o^=)"],
+        "sleeping":      ["(= -.- =)  z", "(= -.- =)   z", "(= -.- =)    Z", "(= -.- =)   z"],
+        "sad":           ["(=;.;=)", "(=T.T=)"],
+        "hungry":        ["(=o.o=)", "(=O.O=)"],
+        "playful":       ["(=^w^=)/", "(=^v^=)~", "(=^w^=)*"],
+    },
+    "dog": {
+        "idle":          ["[^.^]", "[^-^]"],
+        "walking_right": ["[^.^]~", "[^o^]>"],
+        "walking_left":  ["~[^.^]", "<[^o^]"],
+        "sleeping":      ["[- .- ]  z", "[- .- ]   z", "[- .- ]    Z", "[- .- ]   z"],
+        "sad":           ["[;.;]", "[T.T]"],
+        "hungry":        ["[o.o]", "[O.O]"],
+        "playful":       ["[^w^]/", "[^v^]~", "[^w^]*"],
+    },
+    "bunny": {
+        "idle":          ["('^.^')", "('^-^')"],
+        "walking_right": ["('^.^')~", "('^o^')>"],
+        "walking_left":  ["~('^.^')", "<('^o^')"],
+        "sleeping":      ["('-.- ')  z", "('-.- ')   z", "('-.- ')    Z", "('-.- ')   z"],
+        "sad":           ["(';.;')", "('T.T')"],
+        "hungry":        ["('^o^')", "('°o°')"],
+        "playful":       ["('^w^')/", "('^v^')~", "('^w^')*"],
+    },
 }
+
+PET_TYPES = list(ALL_FRAMES.keys())
 
 BEHAVIOR_STYLE: dict[str, str] = {
     "idle": "white",
@@ -83,7 +84,8 @@ class Renderer:
         if self._tick % self._ticks_per_frame == 0:
             self._frame_idx += 1
 
-        frames = FRAMES.get(state.behavior, FRAMES["idle"])
+        pet_frames = ALL_FRAMES.get(state.pet_type, ALL_FRAMES["cat"])
+        frames = pet_frames.get(state.behavior, pet_frames["idle"])
         frame = frames[self._frame_idx % len(frames)]
         pet_style = BEHAVIOR_STYLE.get(state.behavior, "white")
         mood = MOOD_LABEL.get(state.behavior, state.behavior)

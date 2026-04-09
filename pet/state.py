@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 @dataclass
 class PetState:
     name: str = "Bit"
+    pet_type: str = "cat"     # cat | dog | bunny
     hunger: float = 30.0      # 0 = full, 100 = starving
     happiness: float = 70.0   # 0 = sad,  100 = happy
     energy: float = 80.0      # 0 = exhausted, 100 = energized
@@ -15,6 +16,7 @@ class PetState:
     def to_dict(self) -> dict:
         return {
             "name": self.name,
+            "pet_type": self.pet_type,
             "hunger": self.hunger,
             "happiness": self.happiness,
             "energy": self.energy,
@@ -27,6 +29,7 @@ class PetState:
     def from_dict(cls, d: dict) -> "PetState":
         return cls(
             name=d.get("name", "Bit"),
+            pet_type=d.get("pet_type", "cat"),
             hunger=d.get("hunger", 30.0),
             happiness=d.get("happiness", 70.0),
             energy=d.get("energy", 80.0),

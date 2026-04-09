@@ -27,8 +27,10 @@ _MAX_BEHAVIOR_INTERVAL = 6.0
 
 
 class PetDaemon:
-    def __init__(self) -> None:
+    def __init__(self, pet_type: str | None = None) -> None:
         self.state: PetState = load()
+        if pet_type is not None:
+            self.state.pet_type = pet_type
         self.renderer = Renderer()
         self._last_tick = time.monotonic()
         self._last_save = time.monotonic()
@@ -111,6 +113,7 @@ class PetDaemon:
             return {
                 "ok": True,
                 "name": self.state.name,
+                "pet_type": self.state.pet_type,
                 "hunger": round(self.state.hunger, 1),
                 "happiness": round(self.state.happiness, 1),
                 "energy": round(self.state.energy, 1),
@@ -142,8 +145,14 @@ def _write_pid() -> None:
 
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--type", dest="pet_type", default=None,
+                        help="Pet type to use (cat, dog, bunny)")
+    args = parser.parse_args()
+
     _write_pid()
-    daemon = PetDaemon()
+    daemon = PetDaemon(pet_type=args.pet_type)
     try:
         asyncio.run(daemon.run())
     except (KeyboardInterrupt, SystemExit):

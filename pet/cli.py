@@ -14,48 +14,57 @@ from .ipc import send_command
 PID_FILE = "/tmp/pet_daemon.pid"
 
 USAGE = """\
-Usage: pet <command>
+Usage: pet <command> [options]
 
 Commands:
-  start   Start the pet daemon (uses tmux split if inside tmux)
-  stop    Stop the pet daemon and save state
-  status  Show pet's current stats
-  feed    Feed your pet
-  play    Play with your pet
-  sleep   Put your pet to sleep
+  start [--type <type>]  Start the pet daemon (cat, dog, bunny)
+  stop                   Stop the pet daemon and save state
+  status                 Show pet's current stats
+  feed                   Feed your pet
+  play                   Play with your pet
+  sleep                  Put your pet to sleep
+  types                  List available pet types
 """
 
 
 # ── Commands ─────────────────────────────────────────────────────────
 
-def cmd_start() -> None:
+def cmd_start(pet_type: str | None = None) -> None:
+    from .renderer import PET_TYPES
+    if pet_type and pet_type not in PET_TYPES:
+        print(f"Unknown type {pet_type!r}. Available: {', '.join(PET_TYPES)}")
+        sys.exit(1)
+
     if _daemon_alive():
         pid = _read_pid()
-        print(f"Pet is already running (PID {pid}).")
+        print(f"Pet is already running (PID {pid}). Stop it first to change type.")
         return
 
     daemon_mod = "pet.daemon"
     pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    extra = ["--type", pet_type] if pet_type else []
 
     if os.environ.get("TMUX"):
-        # Split a new pane inside the current tmux window
+        type_flag = f" --type {pet_type}" if pet_type else ""
         subprocess.Popen(
             ["tmux", "split-window", "-v", "-l", "8",
-             f"cd {pkg_dir} && {sys.executable} -m {daemon_mod}"],
+             f"cd {pkg_dir} && {sys.executable} -m {daemon_mod}{type_flag}"],
         )
         time.sleep(0.4)
-        print("Pet started in a new tmux pane below!")
+        label = pet_type or "cat"
+        print(f"Pet ({label}) started in a new tmux pane below!")
     else:
         proc = subprocess.Popen(
-            [sys.executable, "-m", daemon_mod],
+            [sys.executable, "-m", daemon_mod] + extra,
             cwd=pkg_dir,
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
         time.sleep(0.5)
-        print(f"Pet started (PID {proc.pid}).")
-        print("Tip: run 'pet start' inside a tmux session to see the pet in a split pane.")
+        label = pet_type or "cat"
+        print(f"Pet ({label}) started (PID {proc.pid}).")
+        print("Tip: run inside a tmux session to see the pet in a split pane.")
 
 
 def cmd_stop() -> None:
@@ -71,11 +80,20 @@ def cmd_status() -> None:
     name = result["name"]
     fullness = 100.0 - result["hunger"]
 
-    print(f"\n  {name}'s status\n")
+    print(f"\n  {name}'s status  [{result.get('pet_type', 'cat')}]\n")
     _print_stat("Food   ", fullness)
     _print_stat("Happy  ", result["happiness"])
     _print_stat("Energy ", result["energy"])
     print(f"\n  Mood: {result['behavior']}\n")
+
+
+def cmd_types() -> None:
+    from .renderer import PET_TYPES, ALL_FRAMES
+    print("\n  Available pet types:\n")
+    previews = {"cat": "(=^.^=)", "dog": "[^.^]", "bunny": "('^.^')"}
+    for t in PET_TYPES:
+        print(f"    {t:<8}  {previews.get(t, '')}")
+    print(f"\n  Usage: pet start --type <type>\n")
 
 
 def cmd_feed() -> None:
@@ -139,29 +157,36 @@ def _daemon_alive() -> bool:
 
 # ── Entry point ───────────────────────────────────────────────────────
 
-_COMMANDS = {
-    "start": cmd_start,
-    "stop": cmd_stop,
-    "status": cmd_status,
-    "feed": cmd_feed,
-    "play": cmd_play,
-    "sleep": cmd_sleep,
-}
-
-
 def main() -> None:
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(USAGE)
         return
 
     cmd = sys.argv[1]
-    fn = _COMMANDS.get(cmd)
-    if fn is None:
+
+    if cmd == "start":
+        pet_type = None
+        if "--type" in sys.argv:
+            idx = sys.argv.index("--type")
+            if idx + 1 < len(sys.argv):
+                pet_type = sys.argv[idx + 1]
+        cmd_start(pet_type=pet_type)
+    elif cmd == "stop":
+        cmd_stop()
+    elif cmd == "status":
+        cmd_status()
+    elif cmd == "feed":
+        cmd_feed()
+    elif cmd == "play":
+        cmd_play()
+    elif cmd == "sleep":
+        cmd_sleep()
+    elif cmd == "types":
+        cmd_types()
+    else:
         print(f"Unknown command: {cmd!r}\n")
         print(USAGE)
         sys.exit(1)
-
-    fn()
 
 
 if __name__ == "__main__":
