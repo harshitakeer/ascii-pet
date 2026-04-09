@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+~/.pet_state.json
+/tmp/pet_daemon.sock
+/tmp/pet_daemon.pid

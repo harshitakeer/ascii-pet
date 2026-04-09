@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Wrapper so you can run `./pet/pet <command>` from anywhere.
+# For global access: ln -s "$PWD/pet/pet" /usr/local/bin/pet
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+exec python3 -m pet "$@"
